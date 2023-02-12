@@ -24,7 +24,10 @@ impl Producer {
                 // println!("push: {:?}", message);
                 handle.push_back(message);
                 pop_condvar.notify_one();
-                tx_thread_handler.send(true);
+                match tx_thread_handler.send(true) {
+                    Ok(_) => {}
+                    Err(err) => { panic!("{:?}", err.to_string()); }
+                };
             },
         );
         self.queue.add_worker(worker, rx_thread_handler);

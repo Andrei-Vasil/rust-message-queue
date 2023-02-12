@@ -27,8 +27,15 @@ impl Consumer {
                     println!("{:?} waitin", id);
                     guard = pop_condvar.wait(guard).unwrap();
                 }
-                tx.send(guard.pop_front());
-                tx_thread_handler.send(true);
+                match tx.send(guard.pop_front()) {
+                    Ok(_) => {
+                        match tx_thread_handler.send(true) {
+                            Ok(_) => {},
+                            Err(err) => { panic!("{:?}", err.to_string()); }
+                        };
+                    }
+                    Err(err) => { panic!("{:?}", err.to_string()); }
+                };
             },
         );
         self.queue.add_worker(worker, rx_thread_handler);

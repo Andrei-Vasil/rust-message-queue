@@ -40,7 +40,10 @@ impl Daemon {
 
 impl Drop for Daemon {
     fn drop(&mut self) {
-        self.tx.lock().unwrap().send(true);
+        match self.tx.lock().unwrap().send(true) {
+            Ok(_) => {}
+            Err(err) => { panic!("{:?}", err.to_string()); }
+        }
         if let Some(thread) = self.handle.take() {
             thread.join().unwrap();
         }
