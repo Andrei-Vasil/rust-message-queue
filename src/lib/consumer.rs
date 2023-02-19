@@ -3,16 +3,17 @@ use std::sync::{mpsc, Arc};
 use super::{queue::Queue, worker::Worker};
 
 
-pub struct Consumer {
-    queue: Arc<Queue>,
+pub struct Consumer<T> {
+    queue: Arc<Queue<T>>,
 }
 
-impl Consumer {
-    pub fn new(queue: Arc<Queue>) -> Self {
+impl<T> Consumer<T>
+where T: 'static + Send {
+    pub fn new(queue: Arc<Queue<T>>) -> Self {
         Self { queue }
     }
 
-    pub fn pop(&self) -> Option<i32> {
+    pub fn pop(&self) -> Option<T> {
         let message_queue = self.queue.get_message_queue();
         let pop_condvar = self.queue.get_pop_condvar();
         let (tx_thread_handler, rx_thread_handler) = mpsc::channel();
@@ -43,6 +44,6 @@ impl Consumer {
     }
 }
 
-impl Drop for Consumer {
+impl<T> Drop for Consumer<T> {
     fn drop(&mut self) {}
 }

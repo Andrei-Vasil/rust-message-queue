@@ -3,15 +3,15 @@ use std::{sync::{Arc, Mutex, Condvar, mpsc::{Receiver}}, collections::VecDeque};
 use super::worker::Worker;
 use super::daemon::Daemon;
 
-pub struct Queue {
+pub struct Queue<T> {
     max_worker_id: Mutex<usize>,
     workers: Arc<Mutex<Vec<(Worker, Receiver<bool>)>>>,
-    message_queue: Arc<Mutex<VecDeque<i32>>>,
+    message_queue: Arc<Mutex<VecDeque<T>>>,
     pop_condvar: Arc<Condvar>,
     daemon_thread: Daemon,
 }
 
-impl Queue {
+impl<T> Queue<T> {
     pub fn new() -> Self {
         let workers = Arc::new(Mutex::new(Vec::new()));
         let workers_clone = workers.clone();
@@ -37,7 +37,7 @@ impl Queue {
         *guard
     }
 
-    pub fn get_message_queue(&self) -> Arc<Mutex<VecDeque<i32>>> {
+    pub fn get_message_queue(&self) -> Arc<Mutex<VecDeque<T>>> {
         self.message_queue.clone()
     }
 
@@ -46,7 +46,7 @@ impl Queue {
     }
 }
 
-impl Drop for Queue {
+impl<T> Drop for Queue<T> {
     fn drop(&mut self) {
         drop(&mut self.daemon_thread);
     }
