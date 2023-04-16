@@ -22,7 +22,7 @@ where T: 'static + Send {
         let id = self.queue.inc_max_worker_id();
         let worker = Worker::new(
             move || {
-                println!("{:?} popper", id);
+                // println!("{:?} popper", id);
                 let mut guard = message_queue.lock().unwrap();
                 while guard.len() == 0 {
                     println!("{:?} waitin", id);

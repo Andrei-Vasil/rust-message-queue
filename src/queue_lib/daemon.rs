@@ -31,7 +31,7 @@ impl Daemon {
                         drop(worker);
                         false
                     },
-                    Err(_) =>true,
+                    Err(_) => true,
                 }
             });
         }))

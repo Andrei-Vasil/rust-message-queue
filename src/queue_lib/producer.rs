@@ -17,10 +17,10 @@ where T: 'static + Send {
         let pop_condvar = self.queue.get_pop_condvar();
         let (tx_thread_handler, rx_thread_handler) = mpsc::channel();
         
-        let id = self.queue.inc_max_worker_id();
+        // let id = self.queue.inc_max_worker_id();
         let worker = Worker::new(
             move || {
-                println!("{:?} pusher", id);
+                // println!("{:?} pusher", id);
                 let mut handle = message_queue.lock().unwrap();
                 handle.push_back(message);
                 pop_condvar.notify_one();
