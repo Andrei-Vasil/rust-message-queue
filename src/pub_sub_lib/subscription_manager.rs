@@ -1,21 +1,23 @@
 use std::sync::Arc;
-use super::{shared_memory::SharedMemory, queue_manager::QueueManager};
+use super::queue_manager::QueueManager;
 
 pub struct SubscriptionManager {
-    shared_memory: Arc<SharedMemory>,
     queue_manager: Arc<QueueManager>
 }
 
 impl SubscriptionManager {
-    pub fn new(shared_memory: Arc<SharedMemory>, queue_manager: Arc<QueueManager>) ->  SubscriptionManager {
-        SubscriptionManager { shared_memory, queue_manager }
+    pub fn new(queue_manager: Arc<QueueManager>) ->  SubscriptionManager {
+        SubscriptionManager { queue_manager }
     }
 
     pub fn subscribe(&self, topic: &String) -> Result<String, String> {
-        Ok("subscribe".to_string())
+        match self.queue_manager.create_queue_channel(topic) {
+            Ok(id) => Ok(format!("{id}")),
+            Err(err) => Err(err)
+        }
     }
 
-    pub fn unsubscribe(&self, topic: &String, id: usize) -> Result<String, String> {
-        Ok("unsubscribe".to_string())
+    pub fn unsubscribe(&self, topic: &String, id: i32) -> Result<String, String> {
+        self.queue_manager.remove_queue_channel(topic, id)
     }
 }

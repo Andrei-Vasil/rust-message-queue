@@ -16,69 +16,69 @@ impl HttpRequestHandler {
 
     fn new_topic(&self, request: Request) -> String {
         if request.params.len() != 1 {
-            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
         match self.topic_manager.new_topic(topic) {
-            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}\r\n", message),
-            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}\r\n", err)
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }
     }
     
     fn remove_topic(&self, request: Request) -> String {
         if request.params.len() != 1 {
-            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
         match self.topic_manager.remove_topic(topic) {
-            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
-            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }
     }
 
     fn subscribe(&self, request: Request) -> String {
         if request.params.len() != 1 {
-            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
         match self.subscription_manager.subscribe(topic) {
-            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
-            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }
     }
 
     fn unsubscribe(&self, request: Request) -> String {
         if request.params.len() != 2 {
-            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
-        let id = request.params[1].parse::<usize>().unwrap();
+        let id = request.params[1].parse::<i32>().unwrap();
         match self.subscription_manager.unsubscribe(topic, id) {
-            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
-            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }
     }
 
     fn publish(&self, request: Request) -> String {
         if request.params.len() != 1 {
-            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
-        match self.queue_manager.publishMessage(topic) {
-            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
-            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        match self.queue_manager.publish_message(topic) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }
     }
 
     fn retrieve(&self, request: Request) -> String {
         if request.params.len() != 2 {
-            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
-        let id = request.params[1].parse::<usize>().unwrap();
-        match self.queue_manager.retrieveMessage(topic, id) {
-            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
-            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        let id = request.params[1].parse::<i32>().unwrap();
+        match self.queue_manager.retrieve_message(topic, id) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }
     }
 

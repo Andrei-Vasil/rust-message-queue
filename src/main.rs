@@ -28,10 +28,10 @@ fn main() {
         Arc::clone(&shared_memory)
     ));
     let queue_manager: Arc<QueueManager> = Arc::new(QueueManager::new(
-        Arc::clone(&shared_memory)
+        Arc::clone(&shared_memory),
+        Arc::clone(&topic_manager)
     ));
     let subscription_manager: Arc<SubscriptionManager> = Arc::new(SubscriptionManager::new(
-        Arc::clone(&shared_memory),
         Arc::clone(&queue_manager)
     ));
     let http_request_handler: Arc<HttpRequestHandler> = Arc::new(HttpRequestHandler::new(
