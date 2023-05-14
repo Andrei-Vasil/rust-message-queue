@@ -6,11 +6,7 @@ use super::http_request_extracter::{extract_request, ActionType, Request};
 pub struct HttpRequestHandler {
     topic_manager: Arc<TopicManager>,
     subscription_manager: Arc<SubscriptionManager>,
-    queue_manager: Arc<QueueManager>
-}
-
-pub struct HttpRequestHandlerWrapper {
-    http_request_handler: Arc<HttpRequestHandler>
+    queue_manager: Arc<QueueManager>,
 }
 
 impl HttpRequestHandler {
@@ -18,32 +14,84 @@ impl HttpRequestHandler {
         HttpRequestHandler { topic_manager, subscription_manager, queue_manager }
     }
 
+    fn new_topic(&self, request: Request) -> String {
+        if request.params.len() != 1 {
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+        }
+        let topic = &request.params[0];
+        match self.topic_manager.new_topic(topic) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}\r\n", message),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}\r\n", err)
+        }
+    }
+    
+    fn remove_topic(&self, request: Request) -> String {
+        if request.params.len() != 1 {
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+        }
+        let topic = &request.params[0];
+        match self.topic_manager.remove_topic(topic) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        }
+    }
+
+    fn subscribe(&self, request: Request) -> String {
+        if request.params.len() != 1 {
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+        }
+        let topic = &request.params[0];
+        match self.subscription_manager.subscribe(topic) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        }
+    }
+
+    fn unsubscribe(&self, request: Request) -> String {
+        if request.params.len() != 2 {
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+        }
+        let topic = &request.params[0];
+        let id = request.params[1].parse::<usize>().unwrap();
+        match self.subscription_manager.unsubscribe(topic, id) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        }
+    }
+
+    fn publish(&self, request: Request) -> String {
+        if request.params.len() != 1 {
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+        }
+        let topic = &request.params[0];
+        match self.queue_manager.publishMessage(topic) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        }
+    }
+
+    fn retrieve(&self, request: Request) -> String {
+        if request.params.len() != 2 {
+            return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path".to_string();
+        }
+        let topic = &request.params[0];
+        let id = request.params[1].parse::<usize>().unwrap();
+        match self.queue_manager.retrieveMessage(topic, id) {
+            Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{}", message),
+            Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", err)
+        }
+    }
+
     fn process_request(&self, request: Request) -> String {
-        if request.action == ActionType::NewTopic {
-            self.topic_manager.new_topic();
-            return String::from("HTTP/1.1 200 OK\r\n\r\n");
+        match request.action {
+            ActionType::NewTopic => self.new_topic(request),
+            ActionType::RemoveTopic => self.remove_topic(request),
+            ActionType::Subscribe => self.subscribe(request),
+            ActionType::Unsubscribe => self.unsubscribe(request),
+            ActionType::Publish => self.publish(request),
+            ActionType::Retrieve => self.retrieve(request),
+            ActionType::NULL => String::from("HTTP/1.1 404 NOT FOUND\r\n\r\n")
         }
-        if request.action == ActionType::RemoveTopic {
-            self.topic_manager.remove_topic();
-            return String::from("HTTP/1.1 200 OK\r\n\r\n");
-        }
-        if request.action == ActionType::Subscribe {
-            self.subscription_manager.subscribe();
-            return String::from("HTTP/1.1 200 OK\r\n\r\n");
-        }
-        if request.action == ActionType::Unsubscribe {
-            self.subscription_manager.unsubscribe();
-            return String::from("HTTP/1.1 200 OK\r\n\r\n");
-        }
-        if request.action == ActionType::Publish {
-            self.queue_manager.publishMessage();
-            return String::from("HTTP/1.1 200 OK\r\n\r\n");
-        }
-        if request.action == ActionType::Retrieve {
-            let item: i32 = self.queue_manager.retrieveMessage();
-            return format!("HTTP/1.1 200 OK\r\n\r\n{:?}", item);
-        }
-        String::from("HTTP/1.1 404 NOT FOUND\r\n\r\n")
     }
 
     fn handle_connection(&self, mut stream: TcpStream) {
@@ -56,6 +104,10 @@ impl HttpRequestHandler {
         stream.flush().unwrap();
         return;
     }
+}
+
+pub struct HttpRequestHandlerWrapper {
+    http_request_handler: Arc<HttpRequestHandler>
 }
 
 impl HttpRequestHandlerWrapper {
