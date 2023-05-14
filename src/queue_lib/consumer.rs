@@ -19,13 +19,13 @@ where T: 'static + Send {
         let (tx_thread_handler, rx_thread_handler) = mpsc::channel();
         let (tx, rx) = mpsc::channel();
         
-        let id = self.queue.inc_max_worker_id();
+        // let id = self.queue.inc_max_worker_id();
         let worker = Worker::new(
             move || {
                 // println!("{:?} popper", id);
                 let mut guard = message_queue.lock().unwrap();
                 while guard.len() == 0 {
-                    println!("{:?} waitin", id);
+                    // println!("{:?} waitin", id);
                     guard = pop_condvar.wait(guard).unwrap();
                 }
                 match tx.send(guard.pop_front()) {
