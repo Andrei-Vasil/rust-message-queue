@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::queue_lib::queue::Queue;
+use crate::queue_lib::{queue::Queue, producer::Producer, consumer::Consumer};
 use super::{shared_memory::SharedMemory, topic_manager::TopicManager};
 
 pub struct QueueManager {
@@ -21,7 +21,7 @@ impl QueueManager {
         max_id_4_topic.insert(topic.clone(), id + 1);
         let queue_channels = &mut *self.shared_memory.queue_channels.lock().unwrap();
         let queue_channel = queue_channels.get_mut(topic).unwrap();
-        queue_channel.insert(id, Queue::<i32>::new());
+        queue_channel.insert(id, Arc::new(Queue::<i32>::new()));
         Ok(id)
     }
 
@@ -37,11 +37,32 @@ impl QueueManager {
         }
     }
 
-    pub fn publish_message(&self, topic: &String) -> Result<String, String> {
-        Ok("publish message".to_string())
+    pub fn publish_message(&self, topic: &String, message: i32) -> Result<String, String> {
+        if !self.topic_manager.exists(topic) {
+            return Err(format!("There is no topic named: {topic}"));
+        }
+        let queue_channels = &*self.shared_memory.queue_channels.lock().unwrap();
+        let topic_queue_channels = queue_channels.get(topic).unwrap();
+        for (_, queue_channel) in topic_queue_channels {
+            let producer = Producer::new(Arc::clone(queue_channel));
+            producer.push(message);
+        }
+        Ok(format!("Successfully published your message to {topic} topic"))
     }
 
     pub fn retrieve_message(&self, topic: &String, id: i32) -> Result<String, String> {
-        Ok(69.to_string())
+        if !self.topic_manager.exists(topic) {
+            return Err(format!("There is no topic named: {topic}"));
+        }
+        let queue_channels = &*self.shared_memory.queue_channels.lock().unwrap();
+        let topic_queue_channels = queue_channels.get(topic).unwrap();
+        match topic_queue_channels.get(&id) {
+            Some(queue_channel) => {
+                let consumer = Consumer::new(Arc::clone(queue_channel));
+                let item = consumer.pop().unwrap();
+                Ok(format!("{item}"))
+            },
+            None => Err(format!("There is no id with specified value: {id}"))
+        }
     }
 }

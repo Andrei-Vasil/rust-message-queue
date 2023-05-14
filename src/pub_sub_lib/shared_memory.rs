@@ -4,7 +4,7 @@ use crate::queue_lib::queue::Queue;
 
 pub struct SharedMemory {
     pub topics: Arc<Mutex<HashSet<String>>>,
-    pub queue_channels: Arc<Mutex<HashMap<String, HashMap<i32, Queue<i32>>>>>,
+    pub queue_channels: Arc<Mutex<HashMap<String, HashMap<i32, Arc<Queue<i32>>>>>>,
     pub max_id_4_topic:  Arc<Mutex<HashMap<String, i32>>>
 }
 
