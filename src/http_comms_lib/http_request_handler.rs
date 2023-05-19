@@ -64,7 +64,7 @@ impl HttpRequestHandler {
             return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
-        let message = request.body.get("item").unwrap().to_string().parse::<i32>().unwrap();
+        let message = request.body.get("item").unwrap().to_string();
         match self.queue_manager.publish_message(topic, message) {
             Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
             Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
