@@ -96,10 +96,10 @@ impl HttpRequestHandler {
     }
 
     fn handle_connection(&self, mut stream: TcpStream) {
-        let mut buffer = vec![0; 4096];
+        let mut buffer = vec![0; 5 * 1024 * 1024];
         stream.read(&mut buffer).unwrap();
         
-        let request = extract_request(buffer);
+        let (request, mut stream) = extract_request(buffer, stream);
         let response = self.process_request(request);
         stream.write_all(response.as_bytes()).unwrap();
         stream.flush().unwrap();

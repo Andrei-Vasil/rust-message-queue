@@ -1,4 +1,4 @@
-use std::{io::Read, str::FromStr};
+use std::{io::Read, str::FromStr, net::TcpStream};
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -73,8 +73,15 @@ fn extract_action(request_row: &str) -> (ActionType, Vec<String>) {
     (action, params)
 }
 
-pub fn extract_request(buffer: Vec<u8>) -> Request {
+pub fn extract_request(buffer: Vec<u8>, mut stream: TcpStream) -> (Request, TcpStream) {
     let http_request = clear_trash_from_buffer(buffer);
+
+    let mut additional_body_length: usize = 0;
+    let mut read_additional_body: bool = false;
+    if http_request.contains("Expect: 100-continue") {
+        read_additional_body = true;
+    }
+
     let mut action: ActionType = ActionType::NULL;
     let mut body = serde_json::Value::Null;
     let mut params: Vec<String> = Vec::new();
@@ -82,6 +89,19 @@ pub fn extract_request(buffer: Vec<u8>) -> Request {
         if request_row.starts_with("POST") || request_row.starts_with("GET") || request_row.starts_with("DELETE") && action == ActionType::NULL {
             (action, params) = extract_action(request_row);
             return; 
+        }
+        if read_additional_body && request_row.starts_with("Content-Length:") {
+            additional_body_length = request_row.split(" ").last().unwrap().to_string().parse::<usize>().unwrap();
+            let mut buffer2 = vec![0; additional_body_length];
+            stream.read_exact(&mut buffer2).unwrap();
+            let body_as_str = clear_trash_from_buffer(buffer2);
+            let json: serde_json::Value = match serde_json::from_str(body_as_str.as_str()) {
+                Ok(json) => json,
+                Err(_) => serde_json::Value::Null
+            };
+            if json != serde_json::Value::Null {
+                body = json;
+            }
         }
         let json: serde_json::Value = match serde_json::from_str(request_row) {
             Ok(json) => json,
@@ -91,5 +111,5 @@ pub fn extract_request(buffer: Vec<u8>) -> Request {
             body = json;
         }
     });
-    Request { action, params, body }
+    (Request { action, params, body }, stream)
 }
