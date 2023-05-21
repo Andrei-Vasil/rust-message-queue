@@ -18,11 +18,15 @@ mod pub_sub_lib {
     pub mod topic_manager;
 }
 
+mod benchmark_lib {
+    pub mod benchmark;
+}
+
 use std::sync::Arc;
 use http_comms_lib::http_request_handler::{HttpRequestHandler, HttpRequestHandlerWrapper};
 use pub_sub_lib::{shared_memory::SharedMemory, topic_manager::TopicManager, subscription_manager::SubscriptionManager, queue_manager::QueueManager};
 
-fn main() {
+fn main() {   
     let shared_memory: Arc<SharedMemory> = Arc::new(SharedMemory::new());
     let topic_manager: Arc<TopicManager> = Arc::new(TopicManager::new(
         Arc::clone(&shared_memory)

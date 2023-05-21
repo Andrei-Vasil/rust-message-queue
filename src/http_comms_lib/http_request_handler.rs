@@ -65,7 +65,8 @@ impl HttpRequestHandler {
         }
         let topic = &request.params[0];
         let message = request.body.get("item").unwrap().to_string();
-        match self.queue_manager.publish_message(topic, message) {
+        let benchmark_id = request.body.get("benchmark_id").unwrap().to_string().parse::<usize>().unwrap();
+        match self.queue_manager.publish_message(topic, message, benchmark_id) {
             Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
             Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }

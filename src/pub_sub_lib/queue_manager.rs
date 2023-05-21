@@ -37,7 +37,7 @@ impl QueueManager {
         }
     }
 
-    pub fn publish_message(&self, topic: &String, message: String) -> Result<String, String> {
+    pub fn publish_message(&self, topic: &String, message: String, benchmark_id: usize) -> Result<String, String> {
         if !self.topic_manager.exists(topic) {
             return Err(format!("There is no topic named: {topic}"));
         }
@@ -45,7 +45,7 @@ impl QueueManager {
         let topic_queue_channels = queue_channels.get(topic).unwrap();
         for (_, queue_channel) in topic_queue_channels {
             let producer = Producer::new(Arc::clone(queue_channel));
-            producer.push(message.clone());
+            producer.push(message.clone(), benchmark_id);
         }
         Ok(format!("Successfully published your message to {topic} topic"))
     }

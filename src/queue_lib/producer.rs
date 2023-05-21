@@ -1,5 +1,5 @@
 use std::sync::{mpsc, Arc};
-
+use crate::benchmark_lib::benchmark::set_publish_over;
 use super::{queue::{Queue}, worker::Worker};
 
 pub struct Producer<T> {
@@ -12,18 +12,17 @@ where T: 'static + Send {
         Self { queue }
     }
 
-    pub fn push(&self, message: T) {
+    pub fn push(&self, message: T, benchmark_id: usize) {
         let message_queue = self.queue.get_message_queue();
         let pop_condvar = self.queue.get_pop_condvar();
         let (tx_thread_handler, rx_thread_handler) = mpsc::channel();
         
-        // let id = self.queue.inc_max_worker_id();
         let worker = Worker::new(
             move || {
-                // println!("{:?} pusher", id);
                 let mut handle = message_queue.lock().unwrap();
                 handle.push_back(message);
                 pop_condvar.notify_one();
+                set_publish_over(benchmark_id);
                 match tx_thread_handler.send(true) {
                     Ok(_) => {}
                     Err(err) => { panic!("{:?}", err.to_string()); }
