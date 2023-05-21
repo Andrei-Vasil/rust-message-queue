@@ -1,5 +1,7 @@
 use std::sync::{mpsc, Arc};
 
+use crate::benchmark_lib::benchmark::count_consumer_throughput;
+
 use super::{queue::Queue, worker::Worker};
 
 
@@ -27,6 +29,7 @@ where T: 'static + Send {
                 }
                 match tx.send(guard.pop_front()) {
                     Ok(_) => {
+                        count_consumer_throughput();
                         match tx_thread_handler.send(true) {
                             Ok(_) => {},
                             Err(err) => { panic!("{:?}", err.to_string()); }

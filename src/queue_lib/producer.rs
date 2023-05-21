@@ -1,5 +1,5 @@
 use std::sync::{mpsc, Arc};
-use crate::benchmark_lib::benchmark::set_publish_over;
+use crate::benchmark_lib::benchmark::{set_publish_over, count_producer_throughput};
 use super::{queue::{Queue}, worker::Worker};
 
 pub struct Producer<T> {
@@ -23,6 +23,7 @@ where T: 'static + Send {
                 handle.push_back(message);
                 pop_condvar.notify_one();
                 set_publish_over(benchmark_id);
+                count_producer_throughput();
                 match tx_thread_handler.send(true) {
                     Ok(_) => {}
                     Err(err) => { panic!("{:?}", err.to_string()); }
