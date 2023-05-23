@@ -5,7 +5,7 @@ use std::io::Write;
 
 lazy_static! {
     static ref BENCHMARKING: bool = true;
-    static ref BENCHARK_ID: usize = 1;
+    static ref BENCHARK_ID: usize = 4;
     static ref LATENCY_BENCHMARK_FILE: String = format!("data/latency/{}-{}.csv", Utc::now().format("%Y-%m-%d"), *BENCHARK_ID).to_string();
     static ref PRODUCER_THROUGHPUT_BENCHMARK_FILE: String = format!("data/throughput/producer/{}-{}.csv", Utc::now().format("%Y-%m-%d"), *BENCHARK_ID).to_string();
     static ref CONSUMER_THROUGHPUT_BENCHMARK_FILE: String = format!("data/throughput/consumer/{}-{}.csv", Utc::now().format("%Y-%m-%d"), *BENCHARK_ID).to_string();

@@ -1,4 +1,5 @@
 use std::{io::Read, str::FromStr, net::TcpStream};
+use regex::Regex;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -78,7 +79,8 @@ pub fn extract_request(buffer: Vec<u8>, mut stream: TcpStream) -> (Request, TcpS
 
     let mut additional_body_length: usize = 0;
     let mut read_additional_body: bool = false;
-    if http_request.contains("Expect: 100-continue") {
+    let re = Regex::new(r"\nExpect: 100-continue\r\n").unwrap();
+    if re.is_match(http_request.as_str()) {
         read_additional_body = true;
     }
 
@@ -94,8 +96,7 @@ pub fn extract_request(buffer: Vec<u8>, mut stream: TcpStream) -> (Request, TcpS
             additional_body_length = request_row.split(" ").last().unwrap().to_string().parse::<usize>().unwrap();
             let mut buffer2 = vec![0; additional_body_length];
             stream.read_exact(&mut buffer2).unwrap();
-            let body_as_str = clear_trash_from_buffer(buffer2);
-            let json: serde_json::Value = match serde_json::from_str(body_as_str.as_str()) {
+            let json: serde_json::Value = match serde_json::from_slice(buffer2.as_slice()) {
                 Ok(json) => json,
                 Err(_) => serde_json::Value::Null
             };
@@ -103,12 +104,14 @@ pub fn extract_request(buffer: Vec<u8>, mut stream: TcpStream) -> (Request, TcpS
                 body = json;
             }
         }
-        let json: serde_json::Value = match serde_json::from_str(request_row) {
-            Ok(json) => json,
-            Err(_) => serde_json::Value::Null
-        };
-        if json != serde_json::Value::Null {
-            body = json;
+        if !read_additional_body {
+            let json: serde_json::Value = match serde_json::from_str(request_row) {
+                Ok(json) => json,
+                Err(_) => serde_json::Value::Null
+            };
+            if json != serde_json::Value::Null {
+                body = json;
+            }
         }
     });
     (Request { action, params, body }, stream)
