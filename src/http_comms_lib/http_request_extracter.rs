@@ -1,5 +1,7 @@
 use std::{io::Read, str::FromStr, net::TcpStream};
+
 use regex::Regex;
+
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum ActionType {
@@ -73,46 +75,68 @@ fn extract_action(request_row: &str) -> (ActionType, Vec<String>) {
     (action, params)
 }
 
-pub fn extract_request(buffer: Vec<u8>, mut stream: TcpStream) -> (Request, TcpStream) {
-    let http_request = clear_trash_from_buffer(buffer);
-    // println!("clear trash from buffer: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
+fn get_body(stream: &mut TcpStream) -> String {
+    stream.set_nonblocking(true).unwrap();
+
+    let mut request_as_str: String = String::new();
+    let mut buffer = vec![0; 5 * 1024 * 1024];
+    let mut n = match stream.read(&mut buffer) {
+        Ok(length) => length,
+        Err(_) => 0
+    };
+    if n == 0 {
+        return request_as_str;
+    }
+    request_as_str.push_str(clear_trash_from_buffer(buffer).as_str());
+    while n > 0 {
+        let mut buffer = vec![0; 5 * 1024 * 1024];
+        match stream.read(&mut buffer) {
+            Ok(length) => {
+                n = length;
+            },
+            Err(_) => {
+                break;
+            }
+        }
+        request_as_str.push_str(clear_trash_from_buffer(buffer).as_str());
+    }
+
+    stream.set_nonblocking(false).unwrap();
+
+    request_as_str
+}
+
+pub fn extract_request(stream: &mut TcpStream) -> Request {
+    let request_as_str: String = get_body(stream);
 
     let mut additional_body_length: usize = 0;
     let mut read_additional_body: bool = false;
     let re = Regex::new(r"\nExpect: 100-continue\r\n").unwrap();
-    if re.is_match(http_request.as_str()) {
+    if re.is_match(request_as_str.as_str()) {
         read_additional_body = true;
     }
 
     let mut action: ActionType = ActionType::NULL;
     let mut body = serde_json::Value::Null;
     let mut params: Vec<String> = Vec::new();
-    http_request.split("\r\n").for_each(|request_row: &str| {
+    request_as_str.split("\r\n").for_each(|request_row: &str| {
         if request_row.starts_with("POST") || request_row.starts_with("GET") || request_row.starts_with("DELETE") && action == ActionType::NULL {
             (action, params) = extract_action(request_row);
             return; 
         }
         if read_additional_body && request_row.starts_with("Content-Length:") {
-            // println!("start processing #2nd buffer: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
             additional_body_length = request_row.split(" ").last().unwrap().to_string().parse::<usize>().unwrap();
-            // println!("got body length: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
             let mut buffer2 = vec![0; additional_body_length];
-            // println!("allocated buffer #2: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
             stream.read_exact(&mut buffer2).unwrap();
-            // println!("read buffer #2 into memory: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
             let json: serde_json::Value = match serde_json::from_slice(buffer2.as_slice()) {
                 Ok(json) => json,
                 Err(_) => serde_json::Value::Null
             };
-            // println!("read buffer as serde_json: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
             if json != serde_json::Value::Null {
                 body = json;
             }
-            // println!("assign request body as json: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
-            // println!("end processing #2nd buffer: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
         }
         if !read_additional_body {
-            // println!("start processing #1st buffer as serde json: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
             let json: serde_json::Value = match serde_json::from_str(request_row) {
                 Ok(json) => json,
                 Err(_) => serde_json::Value::Null
@@ -120,8 +144,7 @@ pub fn extract_request(buffer: Vec<u8>, mut stream: TcpStream) -> (Request, TcpS
             if json != serde_json::Value::Null {
                 body = json;
             }
-            // println!("end processing #1st buffer as serde json: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
         }
     });
-    (Request { action, params, body }, stream)
+    Request { action, params, body }
 }

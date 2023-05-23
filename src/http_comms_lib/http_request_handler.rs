@@ -1,4 +1,4 @@
-use std::{net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread::JoinHandle, io::{Read, Write}};
+use std::{net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread::JoinHandle, io::Write};
 use crate::pub_sub_lib::{topic_manager::TopicManager, subscription_manager::SubscriptionManager, queue_manager::QueueManager};
 
 use super::http_request_extracter::{extract_request, ActionType, Request};
@@ -97,13 +97,8 @@ impl HttpRequestHandler {
         }
     }
 
-    fn handle_connection(&self, mut stream: TcpStream) {
-        let mut buffer = vec![0; 5 * 1024 * 1024];
-        // println!("read #1st buffer: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
-        stream.read(&mut buffer).unwrap();
-        // println!("put #1st buffer into memory: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
-        
-        let (request, mut stream) = extract_request(buffer, stream);
+    fn handle_connection(&self, mut stream: TcpStream) {    
+        let request= extract_request(&mut stream);
         let response = self.process_request(request);
         stream.write_all(response.as_bytes()).unwrap();
         stream.flush().unwrap();
@@ -135,7 +130,6 @@ impl HttpRequestHandlerWrapper {
             let stream = stream.unwrap();
             let http_request_handler_copy = Arc::clone(&self.http_request_handler);
             let handle = std::thread::spawn(move || {
-                // println!("\n\nconnection inbound: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
                 http_request_handler_copy.handle_connection(stream);
             });
             handles.lock().unwrap().push(handle);
