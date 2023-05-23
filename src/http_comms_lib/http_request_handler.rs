@@ -59,17 +59,18 @@ impl HttpRequestHandler {
         }
     }
 
-    fn publish(&self, request: Request) -> String {
+    fn publish(&self, mut request: Request) -> String {
         if request.params.len() != 1 {
             return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
-        let message = request.body.get("item").unwrap().to_string();
+        let message = request.body["item"].take();
         let benchmark_id = request.body.get("benchmark_id").unwrap().to_string().parse::<usize>().unwrap();
-        match self.queue_manager.publish_message(topic, message, benchmark_id) {
+        let x = match self.queue_manager.publish_message(topic, message, benchmark_id) {
             Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
             Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
-        }
+        };
+        return x;
     }
 
     fn retrieve(&self, request: Request) -> String {
@@ -98,7 +99,9 @@ impl HttpRequestHandler {
 
     fn handle_connection(&self, mut stream: TcpStream) {
         let mut buffer = vec![0; 5 * 1024 * 1024];
+        // println!("read #1st buffer: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
         stream.read(&mut buffer).unwrap();
+        // println!("put #1st buffer into memory: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
         
         let (request, mut stream) = extract_request(buffer, stream);
         let response = self.process_request(request);
@@ -132,6 +135,7 @@ impl HttpRequestHandlerWrapper {
             let stream = stream.unwrap();
             let http_request_handler_copy = Arc::clone(&self.http_request_handler);
             let handle = std::thread::spawn(move || {
+                // println!("\n\nconnection inbound: {}", (chrono::offset::Local::now().timestamp_nanos() as f64) / 1000000000.00);
                 http_request_handler_copy.handle_connection(stream);
             });
             handles.lock().unwrap().push(handle);

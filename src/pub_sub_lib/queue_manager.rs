@@ -21,7 +21,7 @@ impl QueueManager {
         max_id_4_topic.insert(topic.clone(), id + 1);
         let queue_channels = &mut *self.shared_memory.queue_channels.lock().unwrap();
         let queue_channel = queue_channels.get_mut(topic).unwrap();
-        queue_channel.insert(id, Arc::new(Queue::<String>::new()));
+        queue_channel.insert(id, Arc::new(Queue::<Arc<serde_json::Value>>::new()));
         Ok(id)
     }
 
@@ -37,15 +37,16 @@ impl QueueManager {
         }
     }
 
-    pub fn publish_message(&self, topic: &String, message: String, benchmark_id: usize) -> Result<String, String> {
+    pub fn publish_message(&self, topic: &String, message: serde_json::Value, benchmark_id: usize) -> Result<String, String> {
         if !self.topic_manager.exists(topic) {
             return Err(format!("There is no topic named: {topic}"));
         }
         let queue_channels = &*self.shared_memory.queue_channels.lock().unwrap();
         let topic_queue_channels = queue_channels.get(topic).unwrap();
+        let message_arc = Arc::new(message);
         for (_, queue_channel) in topic_queue_channels {
             let producer = Producer::new(Arc::clone(queue_channel));
-            producer.push(message.clone(), benchmark_id);
+            producer.push(Arc::clone(&message_arc), benchmark_id);
         }
         Ok(format!("Successfully published your message to {topic} topic"))
     }
