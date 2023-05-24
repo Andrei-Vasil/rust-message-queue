@@ -64,12 +64,14 @@ fn extract_action(request_row: &str) -> (ActionType, Vec<String>) {
             action = ActionType::Publish;
             let split_path: Vec<&str> = tiny_slice.split('/').collect();
             params.push(String::from_str(split_path[2]).unwrap());
+            params.push(String::from_str(split_path[3]).unwrap());
         }
         if tiny_slice.starts_with("/subscription") && request_row.starts_with("GET") {
             action = ActionType::Retrieve;
             let split_path: Vec<&str> = tiny_slice.split('/').collect();
             params.push(String::from_str(split_path[2]).unwrap());
             params.push(String::from_str(split_path[3]).unwrap());
+            params.push(String::from_str(split_path[4]).unwrap());
         }
     });
     (action, params)

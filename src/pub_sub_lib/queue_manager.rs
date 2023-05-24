@@ -37,7 +37,7 @@ impl QueueManager {
         }
     }
 
-    pub fn publish_message(&self, topic: &String, message: serde_json::Value, benchmark_id: usize) -> Result<String, String> {
+    pub fn publish_message(&self, topic: &String, message: serde_json::Value, benchmark_id: usize, scenario_id: Arc<String>) -> Result<String, String> {
         if !self.topic_manager.exists(topic) {
             return Err(format!("There is no topic named: {topic}"));
         }
@@ -45,13 +45,14 @@ impl QueueManager {
         let topic_queue_channels = queue_channels.get(topic).unwrap();
         let message_arc = Arc::new(message);
         for (_, queue_channel) in topic_queue_channels {
+            let scenario_id_clone = Arc::clone(&scenario_id);
             let producer = Producer::new(Arc::clone(queue_channel));
-            producer.push(Arc::clone(&message_arc), benchmark_id);
+            producer.push(Arc::clone(&message_arc), benchmark_id, scenario_id_clone);
         }
         Ok(format!("Successfully published your message to {topic} topic"))
     }
 
-    pub fn retrieve_message(&self, topic: &String, id: i32) -> Result<String, String> {
+    pub fn retrieve_message(&self, topic: &String, id: i32, scenario_id: Arc<String>) -> Result<String, String> {
         if !self.topic_manager.exists(topic) {
             return Err(format!("There is no topic named: {topic}"));
         }
@@ -60,7 +61,7 @@ impl QueueManager {
         match topic_queue_channels.get(&id) {
             Some(queue_channel) => {
                 let consumer = Consumer::new(Arc::clone(queue_channel));
-                let item = consumer.pop().unwrap();
+                let item = consumer.pop(scenario_id).unwrap();
                 Ok(format!("{item}"))
             },
             None => Err(format!("There is no id with specified value: {id}"))

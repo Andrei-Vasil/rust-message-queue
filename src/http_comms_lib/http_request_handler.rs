@@ -66,7 +66,8 @@ impl HttpRequestHandler {
         let topic = &request.params[0];
         let message = request.body["item"].take();
         let benchmark_id = request.body.get("benchmark_id").unwrap().to_string().parse::<usize>().unwrap();
-        let x = match self.queue_manager.publish_message(topic, message, benchmark_id) {
+        let scenario_id = Arc::new(request.params[1].clone());
+        let x = match self.queue_manager.publish_message(topic, message, benchmark_id, scenario_id) {
             Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
             Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         };
@@ -79,7 +80,8 @@ impl HttpRequestHandler {
         }
         let topic = &request.params[0];
         let id = request.params[1].parse::<i32>().unwrap();
-        match self.queue_manager.retrieve_message(topic, id) {
+        let scenario_id = Arc::new(request.params[2].clone());
+        match self.queue_manager.retrieve_message(topic, id, scenario_id) {
             Ok(message) => format!("HTTP/1.1 200 OK\r\n\r\n{message}\r\n"),
             Err(err) => format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{err}\r\n")
         }

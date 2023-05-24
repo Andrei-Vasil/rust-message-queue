@@ -15,12 +15,13 @@ where T: 'static + Send {
         Self { queue }
     }
 
-    pub fn pop(&self) -> Option<T> {
+    pub fn pop(&self, scenario_id: Arc<String>) -> Option<T> {
         let message_queue = self.queue.get_message_queue();
         let pop_condvar = self.queue.get_pop_condvar();
         let (tx_thread_handler, rx_thread_handler) = mpsc::channel();
         let (tx, rx) = mpsc::channel();
         
+        let scenario_id_clone = Arc::clone(&scenario_id);
         let worker = Worker::new(
             move || {
                 let mut guard = message_queue.lock().unwrap();
@@ -29,7 +30,7 @@ where T: 'static + Send {
                 }
                 match tx.send(guard.pop_front()) {
                     Ok(_) => {
-                        count_consumer_throughput();
+                        count_consumer_throughput(scenario_id_clone);
                         match tx_thread_handler.send(true) {
                             Ok(_) => {},
                             Err(err) => { panic!("{:?}", err.to_string()); }

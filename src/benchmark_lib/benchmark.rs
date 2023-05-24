@@ -1,14 +1,10 @@
-use chrono::Utc;
 use lazy_static::lazy_static;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::sync::Arc;
 
 lazy_static! {
     static ref BENCHMARKING: bool = true;
-    static ref BENCHARK_ID: usize = 4;
-    static ref LATENCY_BENCHMARK_FILE: String = format!("data/latency/{}-{}.csv", Utc::now().format("%Y-%m-%d"), *BENCHARK_ID).to_string();
-    static ref PRODUCER_THROUGHPUT_BENCHMARK_FILE: String = format!("data/throughput/producer/{}-{}.csv", Utc::now().format("%Y-%m-%d"), *BENCHARK_ID).to_string();
-    static ref CONSUMER_THROUGHPUT_BENCHMARK_FILE: String = format!("data/throughput/consumer/{}-{}.csv", Utc::now().format("%Y-%m-%d"), *BENCHARK_ID).to_string();
 }
 
 fn timestamp_now_nanoseconds() -> String {
@@ -19,16 +15,17 @@ fn timestamp_now_seconds() -> String {
     format!("{}", chrono::offset::Local::now().timestamp())
 }
 
-pub fn set_publish_over(benchmark_id: usize) {
+pub fn set_publish_over(benchmark_id: usize, scenario_id: Arc<String>) {
     if !*BENCHMARKING {
         return;
     }
 
+    let path = format!("data/latency/{}.csv", scenario_id);
     let mut file = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
-        .open(LATENCY_BENCHMARK_FILE.clone())
+        .open(path)
         .unwrap();
 
     if let Err(e) = writeln!(file, "{},{}", timestamp_now_nanoseconds(), benchmark_id) {
@@ -36,16 +33,17 @@ pub fn set_publish_over(benchmark_id: usize) {
     }
 }
 
-pub fn count_producer_throughput() {
+pub fn count_producer_throughput(scenario_id: Arc<String>) {
     if !*BENCHMARKING {
         return;
     }
 
+    let path = format!("data/throughput/producer/{}.csv", scenario_id);
     let mut file = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
-        .open(PRODUCER_THROUGHPUT_BENCHMARK_FILE.clone())
+        .open(path)
         .unwrap();
 
     if let Err(e) = writeln!(file, "{}", timestamp_now_seconds()) {
@@ -53,16 +51,17 @@ pub fn count_producer_throughput() {
     }
 }
 
-pub fn count_consumer_throughput() {
+pub fn count_consumer_throughput(scenario_id: Arc<String>) {
     if !*BENCHMARKING {
         return;
     }
 
+    let path = format!("data/throughput/consumer/{}.csv", scenario_id);
     let mut file = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
-        .open(CONSUMER_THROUGHPUT_BENCHMARK_FILE.clone())
+        .open(path)
         .unwrap();
 
     if let Err(e) = writeln!(file, "{}", timestamp_now_seconds()) {
