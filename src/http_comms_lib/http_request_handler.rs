@@ -60,7 +60,7 @@ impl HttpRequestHandler {
     }
 
     fn publish(&self, mut request: Request) -> String {
-        if request.params.len() != 1 {
+        if request.params.len() != 2 {
             return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
@@ -75,7 +75,7 @@ impl HttpRequestHandler {
     }
 
     fn retrieve(&self, request: Request) -> String {
-        if request.params.len() != 2 {
+        if request.params.len() != 3 {
             return "HTTP/1.1 404 NOT FOUND\r\n\r\nInvalid path\r\n".to_string();
         }
         let topic = &request.params[0];
