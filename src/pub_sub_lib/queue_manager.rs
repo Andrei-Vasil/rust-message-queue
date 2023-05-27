@@ -44,7 +44,7 @@ impl QueueManager {
         let queue_channels = &*self.shared_memory.queue_channels.lock().unwrap();
         let topic_queue_channels = queue_channels.get(topic).unwrap();
         let message_arc = Arc::new(message);
-        for (_, queue_channel) in topic_queue_channels {
+        for queue_channel in topic_queue_channels.values() {
             let scenario_id_clone = Arc::clone(&scenario_id);
             let producer = Producer::new(Arc::clone(queue_channel));
             producer.push(Arc::clone(&message_arc), benchmark_id, scenario_id_clone);
@@ -56,15 +56,20 @@ impl QueueManager {
         if !self.topic_manager.exists(topic) {
             return Err(format!("There is no topic named: {topic}"));
         }
-        let queue_channels = &*self.shared_memory.queue_channels.lock().unwrap();
+        let queue_channels_guard = self.shared_memory.queue_channels.lock().unwrap();
+        let queue_channels = &*queue_channels_guard;
         let topic_queue_channels = queue_channels.get(topic).unwrap();
+        let consumer: Consumer<Arc<serde_json::Value>>;
         match topic_queue_channels.get(&id) {
             Some(queue_channel) => {
-                let consumer = Consumer::new(Arc::clone(queue_channel));
-                let item = consumer.pop(scenario_id).unwrap();
-                Ok(format!("{item}"))
+                consumer = Consumer::new(Arc::clone(queue_channel));
             },
-            None => Err(format!("There is no id with specified value: {id}"))
-        }
+            None => {
+                return Err(format!("There is no id with specified value: {id}"));
+            }
+        };
+        drop(queue_channels_guard);
+        let item = consumer.pop(scenario_id).unwrap();
+        Ok(format!("{item}"))
     }
 }

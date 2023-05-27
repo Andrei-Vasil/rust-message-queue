@@ -15,26 +15,27 @@ impl Daemon {
     }
 
     fn init_daemon_thread(rx: Receiver<bool>, workers: Arc<Mutex<Vec<(Worker, Receiver<bool>)>>>) -> Option<thread::JoinHandle<()>> {
-        Some(thread::spawn(move || loop {
-            match rx.try_recv() {
-                Ok(_) => {
-                    break;
-                },
-                Err(_) => {},
-            };
+        Some(thread::spawn(|| {}))
+        // Some(thread::spawn(move || loop {
+        //     match rx.try_recv() {
+        //         Ok(_) => {
+        //             break;
+        //         },
+        //         Err(_) => {},
+        //     };
 
-            let mut guard = workers.lock().unwrap();
-            let _workers = &mut *guard;
-            _workers.retain(|(worker, rx)| {
-                match rx.try_recv() {
-                    Ok(_) => {
-                        drop(worker);
-                        false
-                    },
-                    Err(_) => true,
-                }
-            });
-        }))
+        //     let mut guard = workers.lock().unwrap();
+        //     let _workers = &mut *guard;
+        //     _workers.retain(|(worker, rx)| {
+        //         match rx.try_recv() {
+        //             Ok(_) => {
+        //                 drop(worker);
+        //                 false
+        //             },
+        //             Err(_) => true,
+        //         }
+        //     });
+        // }))
     }
 }
 
@@ -42,7 +43,7 @@ impl Drop for Daemon {
     fn drop(&mut self) {
         match self.tx.lock().unwrap().send(true) {
             Ok(_) => {}
-            Err(err) => { panic!("{:?}", err.to_string()); }
+            Err(_) => {}
         }
         if let Some(thread) = self.handle.take() {
             thread.join().unwrap();

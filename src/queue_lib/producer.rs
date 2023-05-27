@@ -23,13 +23,13 @@ where T: 'static + Send {
             move || {
                 let mut handle = message_queue.lock().unwrap();
                 handle.push_back(message);
-                pop_condvar.notify_one();
+                pop_condvar.notify_all();
                 set_publish_over(benchmark_id, scenario_id_clone_1);
                 count_producer_throughput(scenario_id_clone_2);
-                match tx_thread_handler.send(true) {
-                    Ok(_) => {}
-                    Err(err) => { panic!("{:?}", err.to_string()); }
-                };
+                // match tx_thread_handler.send(true) {
+                //     Ok(_) => {}
+                //     Err(_) => {}
+                // };
             },
         );
         self.queue.add_worker(worker, rx_thread_handler);

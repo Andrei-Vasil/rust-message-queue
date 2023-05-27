@@ -23,10 +23,10 @@ impl<T> Queue<T> {
     }
 
     pub fn add_worker(&self, worker: Worker, rx_thread_handler: Receiver<bool>) {
-        self.workers.lock().unwrap().push((
-            worker, 
-            rx_thread_handler,
-        ));
+        // self.workers.lock().unwrap().push((
+        //     worker, 
+        //     rx_thread_handler,
+        // ));
     }
 
     pub fn get_message_queue(&self) -> Arc<Mutex<VecDeque<T>>> {

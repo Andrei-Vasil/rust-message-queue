@@ -1,4 +1,4 @@
-use std::{net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread::JoinHandle, io::Write};
+use std::{net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread::JoinHandle, io::Write, process::exit};
 use crate::pub_sub_lib::{topic_manager::TopicManager, subscription_manager::SubscriptionManager, queue_manager::QueueManager};
 
 use super::http_request_extracter::{extract_request, ActionType, Request};
@@ -101,7 +101,18 @@ impl HttpRequestHandler {
 
     fn handle_connection(&self, mut stream: TcpStream) {    
         let request= extract_request(&mut stream);
-        let response = self.process_request(request);
+        let response: String;
+        if request.action == ActionType::Publish && (request.body.is_null() || request.body.as_object().is_none() || !request.body.as_object().unwrap().contains_key("benchmark_id")) {
+            // println!("null body {:?} {:?} {}", request.action, request.params, chrono::Local::now());
+            response = String::from("retry\r\n");
+        }
+        else if request.action == ActionType::NULL {
+            // println!("null action {:?} {:?} {}", request.action, request.params, chrono::Local::now());
+            response = String::from("retry\r\n");
+        } else {
+            println!("{:?} {:?} {}", request.action, request.params, chrono::Local::now());
+            response = self.process_request(request);
+        }
         stream.write_all(response.as_bytes()).unwrap();
         stream.flush().unwrap();
         return;

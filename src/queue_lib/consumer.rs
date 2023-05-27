@@ -4,7 +4,6 @@ use crate::benchmark_lib::benchmark::count_consumer_throughput;
 
 use super::{queue::Queue, worker::Worker};
 
-
 pub struct Consumer<T> {
     queue: Arc<Queue<T>>,
 }
@@ -25,7 +24,7 @@ where T: 'static + Send {
         let worker = Worker::new(
             move || {
                 let mut guard = message_queue.lock().unwrap();
-                while guard.len() == 0 {
+                while guard.is_empty() {
                     guard = pop_condvar.wait(guard).unwrap();
                 }
                 match tx.send(guard.pop_front()) {
@@ -33,10 +32,10 @@ where T: 'static + Send {
                         count_consumer_throughput(scenario_id_clone);
                         match tx_thread_handler.send(true) {
                             Ok(_) => {},
-                            Err(err) => { panic!("{:?}", err.to_string()); }
+                            Err(_) => {}
                         };
                     }
-                    Err(err) => { panic!("{:?}", err.to_string()); }
+                    Err(_) => {}
                 };
             },
         );
