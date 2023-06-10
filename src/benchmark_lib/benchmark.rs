@@ -4,7 +4,7 @@ use std::io::Write;
 use std::sync::Arc;
 
 lazy_static! {
-    static ref BENCHMARKING: bool = true;
+    static ref BENCHMARKING: bool = false;
 }
 
 fn timestamp_now_nanoseconds() -> String {
