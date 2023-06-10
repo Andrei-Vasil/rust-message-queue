@@ -118,7 +118,7 @@ impl HttpRequestHandlerWrapper {
     }
 
     pub fn run(&self) {
-        let listener = TcpListener::bind("0.0.0.0:5000").unwrap();
+        let listener = TcpListener::bind("0.0.0.0:5001").unwrap();
         let handles: Arc<Mutex<Vec<JoinHandle<()>>>> = Arc::new(Mutex::new(Vec::new()));
         
         let handles_copy = Arc::clone(&handles);
